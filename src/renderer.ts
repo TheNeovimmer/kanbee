@@ -7,7 +7,14 @@ import {
   Column,
   Card,
 } from "./types";
-import { getAvailableThemes, getThemeLabel, TerminalName } from "./theme";
+import {
+  getAvailableThemes,
+  getThemeLabel,
+  TerminalName,
+  getThemePreviewColors,
+  applyColorMode,
+} from "./theme";
+import { ColorMode, CustomTheme } from "./types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -251,6 +258,8 @@ function renderStatusBar(
     PROMPT: " PROMPT ",
     CONFIRM: " CONFIRM ",
     THEME_SELECT: " THEME ",
+    THEME_EDITOR: " EDITOR ",
+    THEME_PREVIEW: " PREVIEW ",
   };
 
   const modeStr = bg(
@@ -280,7 +289,19 @@ function renderStatusBar(
       hints = dim("  y: yes  n/Esc: cancel", theme);
       break;
     case "THEME_SELECT":
-      hints = dim("  j/k: navigate  ↵/Space: select  Esc: cancel", theme);
+      hints = dim(
+        "  j/k: navigate  p: preview  c: create  ↵/Space: select  Esc: cancel",
+        theme,
+      );
+      break;
+    case "THEME_EDITOR":
+      hints = dim("  j/k: navigate fields  ↵/i: edit color  Esc: close", theme);
+      break;
+    case "THEME_PREVIEW":
+      hints = dim(
+        "  j/k: navigate  h/l: color mode  ↵: apply  Esc: cancel",
+        theme,
+      );
       break;
   }
 
@@ -377,6 +398,225 @@ function renderThemeSelectOverlay(
 
   // Help text
   const helpText = dim("↵ to select  Esc to cancel", theme);
+  lines.push(
+    border +
+      " " +
+      padRight(helpText, boxWidth - 4 + (helpText.length - visLen(helpText))) +
+      " " +
+      border,
+  );
+
+  // Bottom border
+  lines.push(c(theme.border, "└" + "─".repeat(boxWidth - 2) + "┘"));
+
+  // Center the overlay vertically
+  const startRow = Math.max(2, Math.floor((height - lines.length) / 2));
+  const output: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    output.push(moveTo(startRow + i, startCol) + lines[i]);
+  }
+
+  return output;
+}
+
+// ─── Theme Preview Overlay ────────────────────────────────────────────────────
+
+function renderThemePreviewOverlay(
+  state: AppState,
+  theme: ThemeColors,
+  width: number,
+  height: number,
+): string[] {
+  const themes = getAvailableThemes();
+  const boxWidth = Math.min(70, Math.max(40, width - 10));
+  const startCol = Math.max(1, Math.floor((width - boxWidth) / 2));
+
+  const border = c(theme.border, "│");
+  const lines: string[] = [];
+
+  // Top border
+  lines.push(c(theme.border, "┌" + "─".repeat(boxWidth - 2) + "┐"));
+
+  // Title
+  const title = chalk.bold.hex(theme.primary)("Theme Preview");
+  lines.push(
+    border +
+      " " +
+      padRight(title, boxWidth - 4 + (title.length - visLen(title))) +
+      " " +
+      border,
+  );
+
+  // Separator
+  lines.push(c(theme.border, "├" + "─".repeat(boxWidth - 2) + "┤"));
+
+  // Theme display
+  const selectedTheme = themes[state.previewThemeIndex];
+  const previewColors = getThemePreviewColors(
+    selectedTheme,
+    state.previewColorMode,
+  );
+
+  const themeLabelStr = getThemeLabel(selectedTheme as TerminalName);
+  const themeLabel = chalk.bold.hex(previewColors.primary)(themeLabelStr);
+  const colorModeLabel = c(
+    previewColors.accent,
+    `[${state.previewColorMode.toUpperCase()}]`,
+  );
+  lines.push(
+    border +
+      " " +
+      padRight(
+        `Theme: ${themeLabel} ${colorModeLabel}`,
+        boxWidth -
+          4 +
+          (themeLabel.length -
+            visLen(themeLabel) +
+            (colorModeLabel.length - visLen(colorModeLabel))),
+      ) +
+      " " +
+      border,
+  );
+
+  // Color palette preview
+  lines.push(c(theme.border, "├" + "─".repeat(boxWidth - 2) + "┤"));
+
+  const colorRows = [
+    ["Primary", previewColors.primary],
+    ["Secondary", previewColors.secondary],
+    ["Accent", previewColors.accent],
+    ["Muted", previewColors.muted],
+    ["Border", previewColors.border],
+  ];
+
+  for (const [name, color] of colorRows) {
+    const colorBox = bg(color, "#000000", "  ");
+    const colorLabel = c(previewColors.card, name);
+    const colorHex = c(previewColors.muted, color);
+    const content = `${colorLabel}: ${colorBox} ${colorHex}`;
+    lines.push(
+      border +
+        " " +
+        padRight(content, boxWidth - 4 + (content.length - visLen(content))) +
+        " " +
+        border,
+    );
+  }
+
+  // Separator
+  lines.push(c(theme.border, "├" + "─".repeat(boxWidth - 2) + "┤"));
+
+  // Help text
+  const helpText = dim(
+    "j/k: change theme  h/l: color mode  ↵: apply  Esc: cancel",
+    theme,
+  );
+  lines.push(
+    border +
+      " " +
+      padRight(helpText, boxWidth - 4 + (helpText.length - visLen(helpText))) +
+      " " +
+      border,
+  );
+
+  // Bottom border
+  lines.push(c(theme.border, "└" + "─".repeat(boxWidth - 2) + "┘"));
+
+  // Center the overlay vertically
+  const startRow = Math.max(2, Math.floor((height - lines.length) / 2));
+  const output: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    output.push(moveTo(startRow + i, startCol) + lines[i]);
+  }
+
+  return output;
+}
+
+// ─── Theme Editor Overlay ─────────────────────────────────────────────────────
+
+function renderThemeEditorOverlay(
+  state: AppState,
+  theme: ThemeColors,
+  width: number,
+  height: number,
+): string[] {
+  if (!state.selectedCustomTheme) {
+    return [];
+  }
+
+  const customTheme = state.selectedCustomTheme;
+  const boxWidth = Math.min(70, Math.max(50, width - 10));
+  const startCol = Math.max(1, Math.floor((width - boxWidth) / 2));
+
+  const border = c(theme.border, "│");
+  const lines: string[] = [];
+
+  // Top border
+  lines.push(c(theme.border, "┌" + "─".repeat(boxWidth - 2) + "┐"));
+
+  // Title
+  const title = chalk.bold.hex(theme.primary)(
+    `Edit Theme: ${customTheme.name}`,
+  );
+  lines.push(
+    border +
+      " " +
+      padRight(title, boxWidth - 4 + (title.length - visLen(title))) +
+      " " +
+      border,
+  );
+
+  // Separator
+  lines.push(c(theme.border, "├" + "─".repeat(boxWidth - 2) + "┤"));
+
+  // Color fields
+  const colorFields = [
+    ["Primary", customTheme.colors.primary],
+    ["Secondary", customTheme.colors.secondary],
+    ["Accent", customTheme.colors.accent],
+    ["Muted", customTheme.colors.muted],
+    ["Border", customTheme.colors.border],
+    ["Card", customTheme.colors.card],
+    ["Highlight", customTheme.colors.highlight],
+    ["Background", customTheme.colors.bg],
+    ["Header BG", customTheme.colors.headerBg],
+    ["Status BG", customTheme.colors.statusBg],
+  ];
+
+  for (let i = 0; i < colorFields.length; i++) {
+    const [fieldName, fieldValue] = colorFields[i];
+    const isSelected = i === state.themeEditorField;
+
+    let content: string;
+    if (isSelected) {
+      const marker = c(theme.accent, "> ");
+      const label = chalk.bold.hex(theme.primary)(fieldName);
+      const colorBox = bg(fieldValue, "#000000", "  ");
+      const value = c(theme.muted, fieldValue);
+      content = `${marker}${label}: ${colorBox} ${value}`;
+    } else {
+      const label = c(theme.card, fieldName);
+      const colorBox = bg(fieldValue, "#000000", "  ");
+      const value = c(theme.muted, fieldValue);
+      content = `  ${label}: ${colorBox} ${value}`;
+    }
+
+    lines.push(
+      border +
+        " " +
+        padRight(content, boxWidth - 4 + (content.length - visLen(content))) +
+        " " +
+        border,
+    );
+  }
+
+  // Separator
+  lines.push(c(theme.border, "├" + "─".repeat(boxWidth - 2) + "┤"));
+
+  // Help text
+  const helpText = dim("↵/i: edit field  j/k: navigate  Esc: close", theme);
   lines.push(
     border +
       " " +
@@ -600,6 +840,18 @@ export function render(state: AppState, theme: ThemeColors): void {
   // Theme selection overlay (centered)
   if (state.mode === "THEME_SELECT") {
     const overlay = renderThemeSelectOverlay(state, theme, width, height);
+    output += overlay.join("");
+  }
+
+  // Theme preview overlay (centered)
+  if (state.mode === "THEME_PREVIEW") {
+    const overlay = renderThemePreviewOverlay(state, theme, width, height);
+    output += overlay.join("");
+  }
+
+  // Theme editor overlay (centered)
+  if (state.mode === "THEME_EDITOR") {
+    const overlay = renderThemeEditorOverlay(state, theme, width, height);
     output += overlay.join("");
   }
 
