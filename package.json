@@ -1,6 +1,6 @@
 {
   "name": "workly",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A minimal, beautiful kanban CLI for developers and teams",
   "main": "dist/index.js",
   "bin": {
