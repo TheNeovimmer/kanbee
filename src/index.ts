@@ -19,7 +19,7 @@ async function main() {
     case 'add': {
       const title = args.slice(1).join(' ');
       if (!title) {
-        console.log(chalk.red('Usage: kando add "Task title"'));
+        console.log(chalk.red('Usage: kanbee add "Task title"'));
         process.exit(1);
       }
       const board = data.boards[0];
@@ -34,7 +34,7 @@ async function main() {
       const cardId = args[1];
       const columnId = args[2];
       if (!cardId || !columnId) {
-        console.log(chalk.red('Usage: kando move <card-id> <column-id>'));
+        console.log(chalk.red('Usage: kanbee move <card-id> <column-id>'));
         process.exit(1);
       }
       const success = storage.moveCard(data, data.boards[0].id, cardId, columnId);
@@ -48,7 +48,7 @@ async function main() {
 
     case 'list':
     case 'ls': {
-      console.log(chalk.bold.cyan('\n✦ KanFlow Boards\n'));
+      console.log(chalk.bold.cyan('\n✦ Kanbee Boards\n'));
       for (const board of data.boards) {
         const total = board.cards.length;
         const cols = board.columns.sort((a, b) => a.order - b.order);
@@ -83,7 +83,7 @@ async function main() {
     case 'create-board': {
       const name = args.slice(1).join(' ');
       if (!name) {
-        console.log(chalk.red('Usage: kando create-board "Board Name"'));
+        console.log(chalk.red('Usage: kanbee create-board "Board Name"'));
         process.exit(1);
       }
       storage.createBoard(data, name);
@@ -94,7 +94,7 @@ async function main() {
     case 'delete': {
       const cardId = args[1];
       if (!cardId) {
-        console.log(chalk.red('Usage: kando delete <card-id>'));
+        console.log(chalk.red('Usage: kanbee delete <card-id>'));
         process.exit(1);
       }
       const success = storage.deleteCard(data, data.boards[0].id, cardId);
@@ -109,7 +109,7 @@ async function main() {
     case 'add-column': {
       const colName = args.slice(1).join(' ');
       if (!colName) {
-        console.log(chalk.red('Usage: kando add-column "Column Name"'));
+        console.log(chalk.red('Usage: kanbee add-column "Column Name"'));
         process.exit(1);
       }
       storage.addColumn(data, data.boards[0].id, colName);
@@ -127,19 +127,19 @@ async function main() {
     case '-h':
     default: {
       console.log(`
-${chalk.hex('#e0af68')('✦')} ${chalk.bold.hex('#7aa2f7')('KanFlow')} — terminal kanban board
+${chalk.hex('#e0af68')('✦')} ${chalk.bold.hex('#7aa2f7')('Kanbee')} — terminal kanban board
 
 ${chalk.bold('Usage:')}
-  kando                       Launch interactive TUI
-  kando add "Task"            Add card to first column
-  kando move <id> <col-id>    Move card to column
-  kando delete <id>           Delete a card
-  kando list                  List boards with columns
-  kando view                  Open TUI board view
-  kando boards                List all boards
-  kando create-board "Name"   Create new board
-  kando add-column "Name"     Add column to current board
-  kando data-path             Show data file path
+  kanbee                       Launch interactive TUI
+  kanbee add "Task"            Add card to first column
+  kanbee move <id> <col-id>    Move card to column
+  kanbee delete <id>           Delete a card
+  kanbee list                  List boards with columns
+  kanbee view                  Open TUI board view
+  kanbee boards                List all boards
+  kanbee create-board "Name"   Create new board
+  kanbee add-column "Name"     Add column to current board
+  kanbee data-path             Show data file path
 
 ${chalk.bold('TUI Keys:')}
   h/j/k/l  Navigate columns and cards

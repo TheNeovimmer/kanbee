@@ -1,4 +1,4 @@
-import { AppState, AppMode, ThemeColors, Card, Column, CARD_ICONS, KandoData } from './types';
+import { AppState, AppMode, ThemeColors, Card, Column, CARD_ICONS, KanbeeData } from './types';
 import { parseKeypress, isPrintable } from './input';
 import { render, enterAltScreen, leaveAltScreen, hideCursor } from './renderer';
 import { getThemeColors } from './theme';
@@ -9,7 +9,7 @@ import * as storage from './storage';
 let state: AppState;
 let theme: ThemeColors;
 
-function initState(data: KandoData): void {
+function initState(data: KanbeeData): void {
   const board = data.boards[0];
   state = {
     mode: 'NORMAL',
@@ -442,7 +442,7 @@ function cleanup(): void {
 
 // ─── Main Entry ───────────────────────────────────────────────────────────────
 
-export async function startTUI(data: KandoData): Promise<void> {
+export async function startTUI(data: KanbeeData): Promise<void> {
   initState(data);
 
   // Enter alternate screen

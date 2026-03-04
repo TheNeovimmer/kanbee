@@ -94,7 +94,7 @@ function clearScreen(): string {
 // ─── Header ───────────────────────────────────────────────────────────────────
 
 function renderHeader(state: AppState, theme: ThemeColors, width: number): string {
-  const title = c(theme.accent, '✦') + ' ' + chalk.bold.hex(theme.primary)('KanFlow');
+  const title = c(theme.accent, '✦') + ' ' + chalk.bold.hex(theme.primary)('Kanbee');
   const boardName = c(theme.card, state.board.name);
   const quitHint = dim('q: quit', theme);
 
