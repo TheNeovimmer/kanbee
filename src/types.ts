@@ -35,7 +35,7 @@ export interface Board {
   createdAt: string;
 }
 
-export interface KandoData {
+export interface KanbeeData {
   version: string;
   boards: Board[];
   settings: {
@@ -77,7 +77,7 @@ export interface ThemeColors {
 export interface AppState {
   mode: AppMode;
   board: Board;
-  data: KandoData;
+  data: KanbeeData;
   selectedCol: number;
   selectedCard: number;
   // Prompt state

@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { KandoData, Board, Card, Column, Stamp, Label, DEFAULT_COLUMNS } from './types';
+import { KanbeeData, Board, Card, Column, Stamp, Label, DEFAULT_COLUMNS } from './types';
 
 const DATA_DIR = path.join(os.homedir(), '.kanflow');
 const DATA_FILE = path.join(DATA_DIR, 'data.json');
@@ -18,7 +18,7 @@ export function generateId(): string {
 
 // ─── Migration ────────────────────────────────────────────────────────────────
 
-function migrateData(raw: any): KandoData {
+function migrateData(raw: any): KanbeeData {
   // Migrate boards without columns array
   if (raw.boards) {
     for (const board of raw.boards) {
@@ -47,12 +47,12 @@ function migrateData(raw: any): KandoData {
   delete raw.settings.columns;
   // Update version
   raw.version = '2.0.0';
-  return raw as KandoData;
+  return raw as KanbeeData;
 }
 
 // ─── Load / Save ──────────────────────────────────────────────────────────────
 
-function getDefaultData(): KandoData {
+function getDefaultData(): KanbeeData {
   return {
     version: '2.0.0',
     boards: [
@@ -71,7 +71,7 @@ function getDefaultData(): KandoData {
   };
 }
 
-export function loadData(): KandoData {
+export function loadData(): KanbeeData {
   ensureDataDir();
   if (!fs.existsSync(DATA_FILE)) {
     const data = getDefaultData();
@@ -89,18 +89,18 @@ export function loadData(): KandoData {
   }
 }
 
-export function saveData(data: KandoData): void {
+export function saveData(data: KanbeeData): void {
   ensureDataDir();
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
 }
 
 // ─── Board CRUD ───────────────────────────────────────────────────────────────
 
-export function getBoard(data: KandoData, boardId: string): Board | undefined {
+export function getBoard(data: KanbeeData, boardId: string): Board | undefined {
   return data.boards.find(b => b.id === boardId);
 }
 
-export function createBoard(data: KandoData, name: string): Board {
+export function createBoard(data: KanbeeData, name: string): Board {
   const board: Board = {
     id: generateId(),
     name,
@@ -113,7 +113,7 @@ export function createBoard(data: KandoData, name: string): Board {
   return board;
 }
 
-export function deleteBoard(data: KandoData, boardId: string): boolean {
+export function deleteBoard(data: KanbeeData, boardId: string): boolean {
   const idx = data.boards.findIndex(b => b.id === boardId);
   if (idx !== -1) {
     data.boards.splice(idx, 1);
@@ -125,7 +125,7 @@ export function deleteBoard(data: KandoData, boardId: string): boolean {
 
 // ─── Column CRUD ──────────────────────────────────────────────────────────────
 
-export function addColumn(data: KandoData, boardId: string, name: string, icon?: string): Column | null {
+export function addColumn(data: KanbeeData, boardId: string, name: string, icon?: string): Column | null {
   const board = getBoard(data, boardId);
   if (!board) return null;
 
@@ -141,7 +141,7 @@ export function addColumn(data: KandoData, boardId: string, name: string, icon?:
   return col;
 }
 
-export function renameColumn(data: KandoData, boardId: string, columnId: string, newName: string): boolean {
+export function renameColumn(data: KanbeeData, boardId: string, columnId: string, newName: string): boolean {
   const board = getBoard(data, boardId);
   if (!board) return false;
 
@@ -153,7 +153,7 @@ export function renameColumn(data: KandoData, boardId: string, columnId: string,
   return true;
 }
 
-export function deleteColumn(data: KandoData, boardId: string, columnId: string): boolean {
+export function deleteColumn(data: KanbeeData, boardId: string, columnId: string): boolean {
   const board = getBoard(data, boardId);
   if (!board) return false;
 
@@ -184,7 +184,7 @@ export function deleteColumn(data: KandoData, boardId: string, columnId: string)
 // ─── Card CRUD ────────────────────────────────────────────────────────────────
 
 export function addCard(
-  data: KandoData,
+  data: KanbeeData,
   boardId: string,
   title: string,
   description: string = '',
@@ -213,7 +213,7 @@ export function addCard(
 }
 
 export function moveCard(
-  data: KandoData,
+  data: KanbeeData,
   boardId: string,
   cardId: string,
   columnId: string,
@@ -239,7 +239,7 @@ export function moveCard(
 }
 
 export function updateCard(
-  data: KandoData,
+  data: KanbeeData,
   boardId: string,
   cardId: string,
   updates: Partial<Pick<Card, 'title' | 'description' | 'assignee' | 'icon'>>,
@@ -258,7 +258,7 @@ export function updateCard(
   return true;
 }
 
-export function deleteCard(data: KandoData, boardId: string, cardId: string): boolean {
+export function deleteCard(data: KanbeeData, boardId: string, cardId: string): boolean {
   const board = getBoard(data, boardId);
   if (!board) return false;
 
@@ -273,7 +273,7 @@ export function deleteCard(data: KandoData, boardId: string, cardId: string): bo
 
 // ─── Labels ───────────────────────────────────────────────────────────────────
 
-export function addLabel(data: KandoData, boardId: string, cardId: string, label: Label): boolean {
+export function addLabel(data: KanbeeData, boardId: string, cardId: string, label: Label): boolean {
   const board = getBoard(data, boardId);
   if (!board) return false;
 
@@ -287,7 +287,7 @@ export function addLabel(data: KandoData, boardId: string, cardId: string, label
   return true;
 }
 
-export function removeLabel(data: KandoData, boardId: string, cardId: string, labelName: string): boolean {
+export function removeLabel(data: KanbeeData, boardId: string, cardId: string, labelName: string): boolean {
   const board = getBoard(data, boardId);
   if (!board) return false;
 
