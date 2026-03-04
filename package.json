@@ -1,5 +1,5 @@
 {
-  "name": "@theneovimmer/kanbee",
+  "name": "kanbee",
   "version": "1.0.0",
   "description": "Kanbee — a keyboard-driven terminal kanban board with Vim navigation",
   "main": "dist/index.js",
