@@ -41,7 +41,10 @@ export interface KanbeeData {
   settings: {
     user: string;
     theme?: string;
+    colorMode: ColorMode;
     showIcons: boolean;
+    customThemes?: CustomTheme[];
+    themeOverrides?: ColorOverride;
   };
 }
 
@@ -82,7 +85,11 @@ export type AppMode =
   | "DETAIL"
   | "PROMPT"
   | "CONFIRM"
-  | "THEME_SELECT";
+  | "THEME_SELECT"
+  | "THEME_EDITOR"
+  | "THEME_PREVIEW";
+
+export type ColorMode = "auto" | "light" | "dark";
 
 export interface ThemeColors {
   primary: string;
@@ -95,6 +102,28 @@ export interface ThemeColors {
   bg: string;
   headerBg: string;
   statusBg: string;
+}
+
+export interface ColorOverride {
+  [componentName: string]: Partial<ThemeColors>;
+}
+
+export interface CustomTheme {
+  id: string;
+  name: string;
+  description?: string;
+  baseTheme: string;
+  colors: ThemeColors;
+  colorMode: ColorMode;
+  overrides?: ColorOverride;
+  created: string;
+  modified: string;
+}
+
+export interface ThemePreset {
+  source: "builtin" | "custom" | "imported";
+  id: string;
+  name: string;
 }
 
 export interface AppState {
@@ -122,4 +151,11 @@ export interface AppState {
   creationTitle: string;
   // Theme selection state
   themeSelectIndex: number;
+  // Theme editor state
+  themeEditorMode: "select" | "create" | "edit" | "delete" | null;
+  themeEditorField: number;
+  selectedCustomTheme: CustomTheme | null;
+  // Theme preview state
+  previewThemeIndex: number;
+  previewColorMode: ColorMode;
 }

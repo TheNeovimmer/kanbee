@@ -1,4 +1,4 @@
-import { ThemeColors } from "./types";
+import { ThemeColors, CustomTheme, ColorMode, ColorOverride } from "./types";
 
 export type TerminalName =
   | "ghostty"
@@ -83,6 +83,20 @@ const THEMES: Record<TerminalName, ThemeColors> = {
   },
 };
 
+// Dark/Light mode color adjustments
+const LIGHT_MODE_ADJUSTMENTS: Record<string, Record<string, string>> = {
+  primary: { light: "#5a7ad4", dark: "#7aa2f7" },
+  secondary: { light: "#6ba85f", dark: "#9ece6a" },
+  accent: { light: "#c68d42", dark: "#e0af68" },
+  muted: { light: "#888888", dark: "#565f89" },
+  border: { light: "#d0d0d0", dark: "#3b4261" },
+  card: { light: "#333333", dark: "#c0caf5" },
+  highlight: { light: "#5a7ad4", dark: "#7aa2f7" },
+  bg: { light: "#f5f5f5", dark: "#1a1b26" },
+  headerBg: { light: "#e8e8e8", dark: "#24283b" },
+  statusBg: { light: "#efefef", dark: "#1f2335" },
+};
+
 export function detectTerminal(): TerminalName {
   const env = process.env;
 
@@ -131,4 +145,222 @@ export function getThemeLabel(theme: TerminalName): string {
     default: "Default",
   };
   return labels[theme];
+}
+
+// Color mode functions
+export function applyColorMode(
+  colors: ThemeColors,
+  mode: ColorMode,
+): ThemeColors {
+  if (mode === "auto") {
+    // Auto-detect based on background brightness
+    const bgHex = colors.bg.slice(1);
+    const bgRgb = parseInt(bgHex, 16);
+    const brightness =
+      ((bgRgb >> 16) & (255 * 0.299)) +
+      ((bgRgb >> 8) & 255) * 0.587 +
+      (bgRgb & (255 * 0.114));
+    mode = brightness > 128 ? "light" : "dark";
+  }
+
+  if (mode === "light") {
+    return {
+      primary: LIGHT_MODE_ADJUSTMENTS.primary.light,
+      secondary: LIGHT_MODE_ADJUSTMENTS.secondary.light,
+      accent: LIGHT_MODE_ADJUSTMENTS.accent.light,
+      muted: LIGHT_MODE_ADJUSTMENTS.muted.light,
+      border: LIGHT_MODE_ADJUSTMENTS.border.light,
+      card: LIGHT_MODE_ADJUSTMENTS.card.light,
+      highlight: LIGHT_MODE_ADJUSTMENTS.highlight.light,
+      bg: LIGHT_MODE_ADJUSTMENTS.bg.light,
+      headerBg: LIGHT_MODE_ADJUSTMENTS.headerBg.light,
+      statusBg: LIGHT_MODE_ADJUSTMENTS.statusBg.light,
+    };
+  }
+
+  return colors;
+}
+
+// Custom theme management
+export function createCustomTheme(
+  name: string,
+  baseTheme: TerminalName,
+  colorMode: ColorMode = "auto",
+  description?: string,
+): CustomTheme {
+  const baseColors = getThemeColors(baseTheme);
+  const adjustedColors = applyColorMode(baseColors, colorMode);
+
+  return {
+    id: `custom_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+    name,
+    description,
+    baseTheme,
+    colors: adjustedColors,
+    colorMode,
+    overrides: {},
+    created: new Date().toISOString(),
+    modified: new Date().toISOString(),
+  };
+}
+
+export function updateCustomTheme(
+  theme: CustomTheme,
+  updates: Partial<CustomTheme>,
+): CustomTheme {
+  return {
+    ...theme,
+    ...updates,
+    modified: new Date().toISOString(),
+  };
+}
+
+export function applyColorOverrides(
+  colors: ThemeColors,
+  overrides?: ColorOverride,
+): ThemeColors {
+  if (!overrides) return colors;
+
+  const result = { ...colors };
+
+  for (const [componentName, componentOverrides] of Object.entries(overrides)) {
+    if (componentName === "*" || componentName === "all") {
+      // Apply to all components
+      Object.assign(result, componentOverrides);
+    } else if (componentName in result) {
+      // Apply to specific component
+      Object.assign(result, componentOverrides);
+    }
+  }
+
+  return result;
+}
+
+export function mergeThemeWithOverrides(
+  baseTheme: ThemeColors,
+  customTheme: CustomTheme,
+): ThemeColors {
+  let merged = { ...baseTheme };
+
+  // Apply custom theme colors
+  merged = { ...merged, ...customTheme.colors };
+
+  // Apply color overrides
+  if (customTheme.overrides) {
+    merged = applyColorOverrides(merged, customTheme.overrides);
+  }
+
+  return merged;
+}
+
+// Theme preview utilities
+export function getThemePreviewColors(
+  baseTheme: string,
+  colorMode: ColorMode = "dark",
+): ThemeColors {
+  let colors: ThemeColors;
+
+  if (baseTheme.startsWith("custom_")) {
+    // Placeholder for custom theme - would be loaded from storage
+    colors = getThemeColors("default");
+  } else {
+    colors = getThemeColors(baseTheme as TerminalName);
+  }
+
+  return applyColorMode(colors, colorMode);
+}
+
+// Color scheme import/export
+export function exportThemeAsJson(theme: CustomTheme): string {
+  return JSON.stringify(
+    {
+      name: theme.name,
+      description: theme.description,
+      baseTheme: theme.baseTheme,
+      colorMode: theme.colorMode,
+      colors: theme.colors,
+      overrides: theme.overrides,
+    },
+    null,
+    2,
+  );
+}
+
+export function importThemeFromJson(json: string): CustomTheme | null {
+  try {
+    const data = JSON.parse(json);
+
+    if (!data.name || !data.colors) {
+      return null;
+    }
+
+    const customTheme: CustomTheme = {
+      id: `imported_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      name: data.name,
+      description: data.description || "",
+      baseTheme: data.baseTheme || "default",
+      colors: {
+        primary: data.colors.primary || "#7aa2f7",
+        secondary: data.colors.secondary || "#9ece6a",
+        accent: data.colors.accent || "#e0af68",
+        muted: data.colors.muted || "#565f89",
+        border: data.colors.border || "#3b4261",
+        card: data.colors.card || "#c0caf5",
+        highlight: data.colors.highlight || "#7aa2f7",
+        bg: data.colors.bg || "#1a1b26",
+        headerBg: data.colors.headerBg || "#24283b",
+        statusBg: data.colors.statusBg || "#1f2335",
+      },
+      colorMode: data.colorMode || "auto",
+      overrides: data.overrides || {},
+      created: new Date().toISOString(),
+      modified: new Date().toISOString(),
+    };
+
+    return customTheme;
+  } catch {
+    return null;
+  }
+}
+
+// Theme validation
+export function validateThemeColors(colors: Partial<ThemeColors>): boolean {
+  const hexRegex = /^#[0-9a-fA-F]{6}$/;
+  const requiredFields = [
+    "primary",
+    "secondary",
+    "accent",
+    "muted",
+    "border",
+    "card",
+    "highlight",
+    "bg",
+    "headerBg",
+    "statusBg",
+  ];
+
+  for (const field of requiredFields) {
+    if (field in colors) {
+      const value = colors[field as keyof ThemeColors];
+      if (!value || !hexRegex.test(value)) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+// Clone theme with modifications
+export function cloneTheme(
+  source: ThemeColors,
+  modifications?: Partial<ThemeColors>,
+): ThemeColors {
+  const cloned = { ...source };
+
+  if (modifications) {
+    Object.assign(cloned, modifications);
+  }
+
+  return cloned;
 }
