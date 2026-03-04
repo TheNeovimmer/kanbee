@@ -227,7 +227,7 @@ kanbee push
 |---------|--------|
 | `j` or `<Down>` | Move to next theme in list |
 | `k` or `<Up>` | Move to previous theme in list |
-| `<Return>` or `<Space>` | Apply selected theme |
+| `p` | Preview theme with<Return>` or `<Space>` | Apply selected theme |
 | `<Escape>` | Cancel theme selection |
 
 ### General
@@ -334,9 +334,11 @@ Since board data lives in your repository as JSON, standard Git workflows apply:
 
 ### Themes
 
-Kanbee supports multiple color themes optimized for different terminal emulators and personal preferences. Access the theme selector at any time by pressing `t` in normal mode.
+Kanbee supports powerful theme customization with multiple built-in themes, custom theme creation, color mode toggling, and color scheme import/export.
 
-#### Available Themes
+#### Built-in Themes
+
+Access themes at any time by pressing `t` in normal mode to open the theme selector.
 
 - **default** — Default theme (Tokyonight-inspired)
 - **ghostty** — Optimized for Ghostty terminal
@@ -347,6 +349,108 @@ Kanbee supports multiple color themes optimized for different terminal emulators
 
 The application automatically detects your terminal and applies a matching theme on first launch. You can override this selection at any time by pressing `t` to open the theme menu.
 
+#### Theme Selection Interface
+
+When in theme selection mode (press `t`):
+
+- **`j`/`k` or `↑`/`↓`** — Navigate between available themes
+- **`p`** — Preview theme with color adjustments
+- **`c`** — Create a new custom theme based on selected theme
+- **`Return` or `Space`** — Apply the selected theme
+- **`Escape`** — Cancel and return to normal mode
+
+#### Theme Preview (NEW)
+
+Preview themes before applying them by pressing `p` in the theme selection menu:
+
+- **`j`/`k` or `↑`/`↓`** — Navigate between themes
+- **`h`/`l` or `←`/`→`** — Cycle through color modes (auto, light, dark)
+- **`Return`** — Apply the previewed theme and color mode
+- **`Escape`** — Cancel preview
+
+The preview displays:
+- Theme name and active color mode
+- Color palette with visual swatches
+- Preview of how colors will appear in the interface
+
+#### Dark/Light Mode Support (NEW)
+
+Each theme supports three color modes:
+
+- **auto** — Automatically detect based on terminal background
+- **dark** — Force dark color palette (adjusted for better contrast)
+- **light** — Force light color palette (inverted colors for light terminals)
+
+Toggle color modes during theme preview by pressing `h` or `l`.
+
+#### Custom Theme Creation (NEW)
+
+Create custom themes tailored to your preferences by pressing `c` in the theme selection menu:
+
+1. Enter a name for your custom theme
+2. Select a base theme to inherit colors from
+3. Choose a color mode (auto, light, dark)
+4. Edit individual colors in the theme editor
+
+The theme editor allows you to:
+- Navigate through all 10 color components with `j`/`k`
+- Edit colors by pressing `Return` or `i`
+- Enter colors in hex format: `#RRGGBB` (e.g., `#FF5733`)
+- See live color validation
+- Save changes automatically
+
+#### Per-Component Color Overrides (NEW)
+
+When creating or editing custom themes, override specific color components:
+
+Available color components:
+- **Primary** — Main accent color for highlights
+- **Secondary** — Supporting accent color
+- **Accent** — Highlight and emphasis color
+- **Muted** — Dim/disabled text color
+- **Border** — UI border and separator color
+- **Card** — Card text color
+- **Highlight** — Selection background color
+- **Background** — Main background color
+- **Header BG** — Header background color
+- **Status BG** — Status bar background color
+
+#### Color Scheme Import/Export (NEW)
+
+Export and share custom themes as JSON files:
+
+**Export a theme:**
+```bash
+# Custom themes are stored in ~/.kanflow/data.json
+# Access via the theme editor and export function
+```
+
+**Import a theme:**
+
+Create a JSON file with the following structure:
+
+```json
+{
+  "name": "My Custom Theme",
+  "description": "A beautiful custom color scheme",
+  "baseTheme": "default",
+  "colorMode": "dark",
+  "colors": {
+    "primary": "#7aa2f7",
+    "secondary": "#9ece6a",
+    "accent": "#e0af68",
+    "muted": "#565f89",
+    "border": "#3b4261",
+    "card": "#c0caf5",
+    "highlight": "#7aa2f7",
+    "bg": "#1a1b26",
+    "headerBg": "#24283b",
+    "statusBg": "#1f2335"
+  },
+  "overrides": {}
+}
+```
+
 #### Configuring Themes Programmatically
 
 To set a theme in your `~/.kanflow/data.json` settings:
@@ -356,10 +460,21 @@ To set a theme in your `~/.kanflow/data.json` settings:
   "settings": {
     "user": "alice",
     "theme": "alacritty",
-    "showIcons": true
+    "colorMode": "dark",
+    "showIcons": true,
+    "customThemes": []
   }
 }
 ```
+
+Custom themes are automatically persisted in the `customThemes` array.
+
+#### Theme Storage
+
+- **Built-in themes** — Compiled into the application
+- **Custom themes** — Stored in `~/.kanflow/data.json`
+- **Color preferences** — Saved with your settings
+- **Overrides** — Applied per-component to any theme
 
 ### Icons
 

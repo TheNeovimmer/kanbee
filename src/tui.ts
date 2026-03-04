@@ -315,6 +315,7 @@ function handleThemePreviewKey(key: string): void {
       state.mode = "NORMAL";
       showMessage(`✓ Theme & mode applied`);
       break;
+    }
     case "escape":
     case "q":
       state.mode = "NORMAL";
