@@ -227,8 +227,30 @@ kanbee push
 |---------|--------|
 | `j` or `<Down>` | Move to next theme in list |
 | `k` or `<Up>` | Move to previous theme in list |
-| `p` | Preview theme with<Return>` or `<Space>` | Apply selected theme |
+| `p` | Preview theme with color mode options |
+| `c` | Create a new custom theme |
+| `<Return>` or `<Space>` | Apply selected theme |
 | `<Escape>` | Cancel theme selection |
+
+### Theme Preview Mode
+
+| Binding | Action |
+|---------|--------|
+| `j` or `<Down>` | Move to next theme |
+| `k` or `<Up>` | Move to previous theme |
+| `h` or `<Left>` | Previous color mode (auto → dark → light) |
+| `l` or `<Right>` | Next color mode (auto → light → dark) |
+| `<Return>` | Apply previewed theme and color mode |
+| `<Escape>` | Cancel theme preview |
+
+### Theme Editor Mode
+
+| Binding | Action |
+|---------|--------|
+| `j` or `<Down>` | Move to next color component |
+| `k` or `<Up>` | Move to previous color component |
+| `i` or `<Return>` | Edit selected color (hex format) |
+| `<Escape>` | Close theme editor |
 
 ### General
 

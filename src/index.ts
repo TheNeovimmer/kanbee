@@ -166,12 +166,25 @@ ${chalk.bold("TUI Keys:")}
   R        Rename column
   X        Delete column
   t        Change theme
-  q        Quit
+   q        Quit
 
 ${chalk.bold("Theme Selection:")}
   j/k      Navigate themes
+  p        Preview theme
+  c        Create custom theme
   Enter    Apply selected theme
   Esc      Cancel
+
+${chalk.bold("Theme Preview:")}
+  j/k      Navigate themes
+  h/l      Toggle color mode (auto/light/dark)
+  Enter    Apply theme and mode
+  Esc      Cancel
+
+${chalk.bold("Theme Editor:")}
+  j/k      Navigate color fields
+  i/Enter  Edit color (hex: #RRGGBB)
+  Esc      Close
       `);
       break;
     }
