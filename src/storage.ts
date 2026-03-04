@@ -1,8 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { KandoData, Board, Card, ColumnType, Stamp, Label, DEFAULT_COLUMNS } from './types';
-
 import * as os from 'os';
+import { KandoData, Board, Card, Column, Stamp, Label, DEFAULT_COLUMNS } from './types';
 
 const DATA_DIR = path.join(os.homedir(), '.kanflow');
 const DATA_FILE = path.join(DATA_DIR, 'data.json');
@@ -13,6 +12,46 @@ function ensureDataDir(): void {
   }
 }
 
+export function generateId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+}
+
+// ─── Migration ────────────────────────────────────────────────────────────────
+
+function migrateData(raw: any): KandoData {
+  // Migrate boards without columns array
+  if (raw.boards) {
+    for (const board of raw.boards) {
+      if (!board.columns) {
+        board.columns = DEFAULT_COLUMNS.map(c => ({ ...c }));
+      }
+      // Migrate cards: rename 'column' → 'columnId'
+      if (board.cards) {
+        for (const card of board.cards) {
+          if ('column' in card && !('columnId' in card)) {
+            card.columnId = card.column;
+            delete card.column;
+          }
+          // Ensure labels array exists
+          if (!card.labels) card.labels = [];
+        }
+      }
+    }
+  }
+  // Ensure settings
+  if (!raw.settings) {
+    raw.settings = { user: process.env.USER || 'dev', showIcons: true };
+  }
+  if (raw.settings.showIcons === undefined) raw.settings.showIcons = true;
+  // Remove old settings.columns if present
+  delete raw.settings.columns;
+  // Update version
+  raw.version = '2.0.0';
+  return raw as KandoData;
+}
+
+// ─── Load / Save ──────────────────────────────────────────────────────────────
+
 function getDefaultData(): KandoData {
   return {
     version: '2.0.0',
@@ -20,20 +59,16 @@ function getDefaultData(): KandoData {
       {
         id: generateId(),
         name: 'My Board',
-        columns: [...DEFAULT_COLUMNS],
+        columns: DEFAULT_COLUMNS.map(c => ({ ...c })),
         cards: [],
-        createdAt: new Date().toISOString()
-      }
+        createdAt: new Date().toISOString(),
+      },
     ],
     settings: {
       user: process.env.USER || process.env.USERNAME || 'dev',
-      showIcons: true
-    }
+      showIcons: true,
+    },
   };
-}
-
-export function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
 }
 
 export function loadData(): KandoData {
@@ -45,7 +80,10 @@ export function loadData(): KandoData {
   }
   try {
     const content = fs.readFileSync(DATA_FILE, 'utf-8');
-    return JSON.parse(content);
+    const raw = JSON.parse(content);
+    const data = migrateData(raw);
+    saveData(data);
+    return data;
   } catch {
     return getDefaultData();
   }
@@ -56,9 +94,7 @@ export function saveData(data: KandoData): void {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
 }
 
-export function getBoards(data: KandoData): Board[] {
-  return data.boards;
-}
+// ─── Board CRUD ───────────────────────────────────────────────────────────────
 
 export function getBoard(data: KandoData, boardId: string): Board | undefined {
   return data.boards.find(b => b.id === boardId);
@@ -68,9 +104,9 @@ export function createBoard(data: KandoData, name: string): Board {
   const board: Board = {
     id: generateId(),
     name,
-    columns: [...DEFAULT_COLUMNS],
+    columns: DEFAULT_COLUMNS.map(c => ({ ...c })),
     cards: [],
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
   };
   data.boards.push(board);
   saveData(data);
@@ -78,34 +114,98 @@ export function createBoard(data: KandoData, name: string): Board {
 }
 
 export function deleteBoard(data: KandoData, boardId: string): boolean {
-  const index = data.boards.findIndex(b => b.id === boardId);
-  if (index !== -1) {
-    data.boards.splice(index, 1);
+  const idx = data.boards.findIndex(b => b.id === boardId);
+  if (idx !== -1) {
+    data.boards.splice(idx, 1);
     saveData(data);
     return true;
   }
   return false;
 }
 
+// ─── Column CRUD ──────────────────────────────────────────────────────────────
+
+export function addColumn(data: KandoData, boardId: string, name: string, icon?: string): Column | null {
+  const board = getBoard(data, boardId);
+  if (!board) return null;
+
+  const maxOrder = board.columns.reduce((max, c) => Math.max(max, c.order), -1);
+  const col: Column = {
+    id: generateId(),
+    name,
+    icon,
+    order: maxOrder + 1,
+  };
+  board.columns.push(col);
+  saveData(data);
+  return col;
+}
+
+export function renameColumn(data: KandoData, boardId: string, columnId: string, newName: string): boolean {
+  const board = getBoard(data, boardId);
+  if (!board) return false;
+
+  const col = board.columns.find(c => c.id === columnId);
+  if (!col) return false;
+
+  col.name = newName;
+  saveData(data);
+  return true;
+}
+
+export function deleteColumn(data: KandoData, boardId: string, columnId: string): boolean {
+  const board = getBoard(data, boardId);
+  if (!board) return false;
+
+  const idx = board.columns.findIndex(c => c.id === columnId);
+  if (idx === -1) return false;
+
+  // Move cards from deleted column to first remaining column
+  const remaining = board.columns.filter(c => c.id !== columnId);
+  if (remaining.length > 0) {
+    const targetCol = remaining.sort((a, b) => a.order - b.order)[0];
+    for (const card of board.cards) {
+      if (card.columnId === columnId) {
+        card.columnId = targetCol.id;
+      }
+    }
+  } else {
+    // Last column — remove all cards
+    board.cards = board.cards.filter(c => c.columnId !== columnId);
+  }
+
+  board.columns.splice(idx, 1);
+  // Reindex order
+  board.columns.sort((a, b) => a.order - b.order).forEach((c, i) => (c.order = i));
+  saveData(data);
+  return true;
+}
+
+// ─── Card CRUD ────────────────────────────────────────────────────────────────
+
 export function addCard(
   data: KandoData,
   boardId: string,
   title: string,
-  description: string = ''
+  description: string = '',
+  targetColumnId?: string,
 ): Card | null {
   const board = getBoard(data, boardId);
   if (!board) return null;
+
+  const cols = board.columns.sort((a, b) => a.order - b.order);
+  const colId = targetColumnId || (cols.length > 0 ? cols[0].id : 'backlog');
 
   const card: Card = {
     id: generateId(),
     title,
     description,
-    columnId: 'backlog',
+    columnId: colId,
     labels: [],
     created: {
       by: data.settings.user,
-      at: new Date().toISOString()
-    }
+      at: new Date().toISOString(),
+    },
   };
   board.cards.push(card);
   saveData(data);
@@ -116,7 +216,7 @@ export function moveCard(
   data: KandoData,
   boardId: string,
   cardId: string,
-  column: ColumnType
+  columnId: string,
 ): boolean {
   const board = getBoard(data, boardId);
   if (!board) return false;
@@ -124,13 +224,14 @@ export function moveCard(
   const card = board.cards.find(c => c.id === cardId);
   if (!card) return false;
 
-  card.columnId = column;
-  if (column === 'done' && !card.completed) {
-    card.completed = {
-      by: data.settings.user,
-      at: new Date().toISOString()
-    };
-  } else if (column !== 'done') {
+  // Find if the target column is the last column (for auto-complete)
+  const cols = board.columns.sort((a, b) => a.order - b.order);
+  const lastCol = cols[cols.length - 1];
+
+  card.columnId = columnId;
+  if (lastCol && columnId === lastCol.id && !card.completed) {
+    card.completed = { by: data.settings.user, at: new Date().toISOString() };
+  } else if (lastCol && columnId !== lastCol.id) {
     card.completed = undefined;
   }
   saveData(data);
@@ -141,7 +242,7 @@ export function updateCard(
   data: KandoData,
   boardId: string,
   cardId: string,
-  updates: Partial<Pick<Card, 'title' | 'description' | 'assignee'>>
+  updates: Partial<Pick<Card, 'title' | 'description' | 'assignee' | 'icon'>>,
 ): boolean {
   const board = getBoard(data, boardId);
   if (!board) return false;
@@ -152,62 +253,50 @@ export function updateCard(
   if (updates.title !== undefined) card.title = updates.title;
   if (updates.description !== undefined) card.description = updates.description;
   if (updates.assignee !== undefined) card.assignee = updates.assignee;
+  if (updates.icon !== undefined) card.icon = updates.icon;
   saveData(data);
   return true;
 }
 
-export function deleteCard(
-  data: KandoData,
-  boardId: string,
-  cardId: string
-): boolean {
+export function deleteCard(data: KandoData, boardId: string, cardId: string): boolean {
   const board = getBoard(data, boardId);
   if (!board) return false;
 
-  const index = board.cards.findIndex(c => c.id === cardId);
-  if (index !== -1) {
-    board.cards.splice(index, 1);
+  const idx = board.cards.findIndex(c => c.id === cardId);
+  if (idx !== -1) {
+    board.cards.splice(idx, 1);
     saveData(data);
     return true;
   }
   return false;
 }
 
-export function addLabel(
-  data: KandoData,
-  boardId: string,
-  cardId: string,
-  label: Label
-): boolean {
+// ─── Labels ───────────────────────────────────────────────────────────────────
+
+export function addLabel(data: KandoData, boardId: string, cardId: string, label: Label): boolean {
   const board = getBoard(data, boardId);
   if (!board) return false;
 
   const card = board.cards.find(c => c.id === cardId);
   if (!card) return false;
 
-  const existing = card.labels.find(l => l.name === label.name);
-  if (!existing) {
+  if (!card.labels.find(l => l.name === label.name)) {
     card.labels.push(label);
     saveData(data);
   }
   return true;
 }
 
-export function removeLabel(
-  data: KandoData,
-  boardId: string,
-  cardId: string,
-  labelName: string
-): boolean {
+export function removeLabel(data: KandoData, boardId: string, cardId: string, labelName: string): boolean {
   const board = getBoard(data, boardId);
   if (!board) return false;
 
   const card = board.cards.find(c => c.id === cardId);
   if (!card) return false;
 
-  const index = card.labels.findIndex(l => l.name === labelName);
-  if (index !== -1) {
-    card.labels.splice(index, 1);
+  const idx = card.labels.findIndex(l => l.name === labelName);
+  if (idx !== -1) {
+    card.labels.splice(idx, 1);
     saveData(data);
     return true;
   }
