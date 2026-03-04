@@ -1,7 +1,7 @@
 {
-  "name": "kando",
-  "version": "1.0.0",
-  "description": "A minimal, beautiful kanban CLI for developers and teams",
+  "name": "@theneovimmer/kando",
+  "version": "2.0.0",
+  "description": "A beautiful terminal kanban board built with OpenTUI React",
   "main": "dist/index.js",
   "bin": {
     "kando": "dist/index.js"
@@ -15,8 +15,9 @@
   "keywords": [
     "kanban",
     "cli",
-    "task",
-    "board",
+    "tui",
+    "react",
+    "opentui",
     "productivity"
   ],
   "author": "TheNeovimmer",
@@ -27,13 +28,13 @@
   "homepage": "https://github.com/TheNeovimmer/kando#readme",
   "license": "MIT",
   "dependencies": {
+    "@opentui/react": "latest",
     "chalk": "^4.1.2",
-    "inquirer": "^8.2.5",
-    "boxen": "^5.1.2"
+    "react": "^18.2.0"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
-    "@types/inquirer": "^8.2.10",
+    "@types/react": "^18.2.0",
     "typescript": "^5.3.2",
     "ts-node": "^10.9.2"
   }

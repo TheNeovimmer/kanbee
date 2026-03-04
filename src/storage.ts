@@ -2,8 +2,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { KandoData, Board, Card, ColumnType, Stamp, Label } from './types';
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
-const DATA_FILE = path.join(DATA_DIR, 'boards.json');
+import * as os from 'os';
+
+const DATA_DIR = path.join(os.homedir(), '.kanflow');
+const DATA_FILE = path.join(DATA_DIR, 'data.json');
 
 function ensureDataDir(): void {
   if (!fs.existsSync(DATA_DIR)) {
@@ -13,18 +15,19 @@ function ensureDataDir(): void {
 
 function getDefaultData(): KandoData {
   return {
-    version: '1.0.0',
+    version: '2.0.0',
     boards: [
       {
         id: generateId(),
         name: 'My Board',
+        columns: [...DEFAULT_COLUMNS],
         cards: [],
         createdAt: new Date().toISOString()
       }
     ],
     settings: {
       user: process.env.USER || process.env.USERNAME || 'dev',
-      columns: ['backlog', 'in-progress', 'done']
+      showIcons: true
     }
   };
 }

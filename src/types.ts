@@ -1,4 +1,4 @@
-export type ColumnType = 'backlog' | 'in-progress' | 'done';
+export type ColumnType = string;
 
 export interface Stamp {
   by: string;
@@ -14,16 +14,25 @@ export interface Card {
   id: string;
   title: string;
   description: string;
-  column: ColumnType;
+  columnId: string;
+  icon?: string;
   assignee?: string;
   labels: Label[];
   created: Stamp;
   completed?: Stamp;
 }
 
+export interface Column {
+  id: string;
+  name: string;
+  icon?: string;
+  order: number;
+}
+
 export interface Board {
   id: string;
   name: string;
+  columns: Column[];
   cards: Card[];
   createdAt: string;
 }
@@ -33,17 +42,16 @@ export interface KandoData {
   boards: Board[];
   settings: {
     user: string;
-    columns: ColumnType[];
+    theme?: string;
+    showIcons: boolean;
   };
 }
 
-export const COLUMNS: ColumnType[] = ['backlog', 'in-progress', 'done'];
-
-export const COLUMN_LABELS: Record<ColumnType, string> = {
-  'backlog': 'Backlog',
-  'in-progress': 'In Progress',
-  'done': 'Done'
-};
+export const DEFAULT_COLUMNS: Column[] = [
+  { id: 'backlog', name: 'Backlog', icon: '○', order: 0 },
+  { id: 'in-progress', name: 'In Progress', icon: '◐', order: 1 },
+  { id: 'done', name: 'Done', icon: '●', order: 2 }
+];
 
 export const LABEL_COLORS = [
   'red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'
